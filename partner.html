@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partner - FitSync</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dashboard">
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>Loading...</p>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">💪 FitSync</div>
+            <div class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="progress.html">Progress</a>
+                <a href="partner.html" class="active">Partner</a>
+                <a href="settings.html">Settings</a>
+            </div>
+            <div class="user-menu">
+                <div class="user-avatar" id="userAvatar">JD</div>
+                <span id="userName">Loading...</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 style="margin-bottom: 30px;">👥 Partner Comparison</h1>
+
+        <div id="noPartner" style="display: none; text-align: center; padding: 60px 20px;">
+            <div style="font-size: 4rem; margin-bottom: 20px;">🤝</div>
+            <h2 style="margin-bottom: 15px;">No Partner Linked</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 30px;">Link a partner to see comparison stats and stay accountable together!</p>
+            <a href="settings.html" class="btn btn-primary">Go to Settings</a>
+        </div>
+
+        <div id="partnerContent" style="display: none;">
+            <div class="partner-card" style="margin-bottom: 30px; padding: 30px;">
+                <div class="partner-avatar" id="partnerAvatar" style="width: 80px; height: 80px; font-size: 2rem;">??</div>
+                <div class="partner-info">
+                    <div class="partner-name" id="partnerName" style="font-size: 1.5rem; margin-bottom: 5px;">Partner</div>
+                    <div class="partner-status" id="partnerStatus">Loading...</div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="stat-card">
+                    <div class="stat-label">Your Streak</div>
+                    <div class="stat-value" id="yourStreak">0 🔥</div>
+                </div>
+                <div class="stat-card secondary">
+                    <div class="stat-label">Partner's Streak</div>
+                    <div class="stat-value" id="partnerStreak">0 🔥</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">📊 This Week Comparison</div>
+                </div>
+                <div style="margin-bottom: 30px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-weight: 600;">You</span>
+                        <span style="color: var(--primary); font-weight: 600;" id="yourWeekCount">0/7 days</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="yourWeekBar" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="font-weight: 600;" id="partnerNameLabel">Partner</span>
+                        <span style="color: var(--success); font-weight: 600;" id="partnerWeekCount">0/7 days</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="partnerWeekBar" style="width: 0%; background: linear-gradient(90deg, var(--success), #059669);"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Your Stats</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem;">Total Workouts</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);" id="yourTotal">0</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem;">Success Rate</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary);" id="yourRate">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Partner's Stats</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 15px;">
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem;">Total Workouts</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);" id="partnerTotal">0</div>
+                        </div>
+                        <div>
+                            <div style="color: var(--text-secondary); font-size: 0.85rem;">Success Rate</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--success);" id="partnerRate">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <span>💪</span>
+                <div>
+                    <strong>Keep Each Other Accountable!</strong><br>
+                    <small>Both of you will be notified at 8:00 PM if either misses their workout.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config-secrets.js"></script>
+    <script src="config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="sheets-api.js"></script>
+
+    <script>
+        firebase.initializeApp(CONFIG.firebase);
+        const auth = firebase.auth();
+        let currentUser = null;
+        let userData = null;
+
+        auth.onAuthStateChanged((user) => {
+            if (!user) window.location.href = 'index.html';
+            else { currentUser = user; loadPartnerPage(); }
+        });
+
+        async function loadPartnerPage() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            try {
+                await SheetsAPI.init();
+                const userRow = await SheetsAPI.getUserByEmail(currentUser.email);
+                if (!userRow) { window.location.href = 'setup.html'; return; }
+                userData = { userId: userRow[0], name: userRow[1], partnerId: userRow[7] };
+                document.getElementById('userName').textContent = userData.name;
+                document.getElementById('userAvatar').textContent = getInitials(userData.name);
+                
+                if (!userData.partnerId) {
+                    document.getElementById('noPartner').style.display = 'block';
+                    document.getElementById('partnerContent').style.display = 'none';
+                } else {
+                    document.getElementById('noPartner').style.display = 'none';
+                    document.getElementById('partnerContent').style.display = 'block';
+                    await loadComparison();
+                }
+                document.getElementById('loadingOverlay').style.display = 'none';
+            } catch (error) {
+                console.error('Partner page error:', error);
+                alert('Failed to load partner data: ' + error.message);
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        async function loadComparison() {
+            const users = await SheetsAPI.getUsers();
+            const partnerRow = users.find(row => row[0] === userData.partnerId);
+            if (!partnerRow) { document.getElementById('noPartner').style.display = 'block'; document.getElementById('partnerContent').style.display = 'none'; return; }
+            const partnerName = partnerRow[1];
+            document.getElementById('partnerName').textContent = partnerName;
+            document.getElementById('partnerNameLabel').textContent = partnerName;
+            document.getElementById('partnerAvatar').textContent = getInitials(partnerName);
+            const yourStats = await SheetsAPI.getUserStats(userData.userId);
+            const partnerStats = await SheetsAPI.getUserStats(userData.partnerId);
+            document.getElementById('yourStreak').textContent = yourStats.currentStreak + ' 🔥';
+            document.getElementById('partnerStreak').textContent = partnerStats.currentStreak + ' 🔥';
+            const logs = await SheetsAPI.getDailyLogs();
+            const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+            const weekAgoStr = weekAgo.toISOString().split('T')[0];
+            const yourWeek = [...new Set(logs.slice(1).filter(row => row[2] === userData.userId && row[1] >= weekAgoStr).map(row => row[1]))].length;
+            const partnerWeek = [...new Set(logs.slice(1).filter(row => row[2] === userData.partnerId && row[1] >= weekAgoStr).map(row => row[1]))].length;
+            document.getElementById('yourWeekCount').textContent = `${yourWeek}/7 days`;
+            document.getElementById('yourWeekBar').style.width = (yourWeek / 7 * 100) + '%';
+            document.getElementById('partnerWeekCount').textContent = `${partnerWeek}/7 days`;
+            document.getElementById('partnerWeekBar').style.width = (partnerWeek / 7 * 100) + '%';
+            document.getElementById('yourTotal').textContent = yourStats.totalWorkouts;
+            document.getElementById('partnerTotal').textContent = partnerStats.totalWorkouts;
+            const yourAllLogs = logs.slice(1).filter(row => row[2] === userData.userId);
+            const partnerAllLogs = logs.slice(1).filter(row => row[2] === userData.partnerId);
+            const yourDays = [...new Set(yourAllLogs.map(row => row[1]))].length;
+            const partnerDays = [...new Set(partnerAllLogs.map(row => row[1]))].length;
+            const yourDaysSince = yourAllLogs.length > 0 ? Math.ceil((new Date() - new Date(yourAllLogs[0][1])) / (1000*60*60*24)) : 1;
+            const partnerDaysSince = partnerAllLogs.length > 0 ? Math.ceil((new Date() - new Date(partnerAllLogs[0][1])) / (1000*60*60*24)) : 1;
+            document.getElementById('yourRate').textContent = Math.round((yourDays / yourDaysSince) * 100) + '%';
+            document.getElementById('partnerRate').textContent = Math.round((partnerDays / partnerDaysSince) * 100) + '%';
+            const yourToday = logs.slice(1).filter(row => row[2] === userData.userId && row[1] === new Date().toISOString().split('T')[0]);
+            const partnerToday = logs.slice(1).filter(row => row[2] === userData.partnerId && row[1] === new Date().toISOString().split('T')[0]);
+            const yourWorkouts = await SheetsAPI.getWorkoutsByUserId(userData.userId);
+            const partnerWorkouts = await SheetsAPI.getWorkoutsByUserId(userData.partnerId);
+            if (partnerToday.length === partnerWorkouts.length && partnerWorkouts.length > 0) {
+                document.getElementById('partnerStatus').textContent = '✅ Completed today\'s workout!';
+            } else if (partnerToday.length > 0) {
+                document.getElementById('partnerStatus').textContent = `⏳ ${partnerToday.length}/${partnerWorkouts.length} exercises done today`;
+            } else {
+                document.getElementById('partnerStatus').textContent = '❌ Not started yet today';
+            }
+        }
+
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        }
+    </script>
+</body>
+</html>

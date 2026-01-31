@@ -1,0 +1,12 @@
+{
+  "name": "fitsync-accountability",
+  "version": "2.0.0",
+  "description": "Workout accountability tracker with YouTube breathwork integration",
+  "private": true,
+  "scripts": {
+    "check": "node .github/workflows/check-workouts.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}

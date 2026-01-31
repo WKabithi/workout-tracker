@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress - FitSync</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 20px; }
+        .calendar-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; position: relative; }
+        .calendar-day:hover { transform: scale(1.05); }
+        .calendar-day.empty { background: transparent; cursor: default; }
+        .calendar-day.empty:hover { transform: none; }
+        .calendar-day.complete { background: var(--success); color: white; }
+        .calendar-day.incomplete { background: var(--danger); color: white; }
+        .calendar-day.today { background: var(--primary); color: var(--bg-dark); }
+        .calendar-day.future { background: var(--bg-dark); color: var(--text-secondary); opacity: 0.5; cursor: default; }
+        .calendar-day.future:hover { transform: none; }
+        .calendar-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 10px; text-align: center; font-weight: 600; color: var(--text-secondary); font-size: 0.85rem; }
+        .milestone-card { display: flex; align-items: center; gap: 15px; padding: 15px; background: var(--bg-dark); border-radius: 12px; margin-bottom: 12px; }
+        .milestone-icon { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+        .milestone-icon.locked { background: var(--border); opacity: 0.5; }
+        .milestone-icon.unlocked { background: var(--primary); }
+    </style>
+</head>
+<body class="dashboard">
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>Loading progress...</p>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">💪 FitSync</div>
+            <div class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="progress.html" class="active">Progress</a>
+                <a href="partner.html">Partner</a>
+                <a href="settings.html">Settings</a>
+            </div>
+            <div class="user-menu">
+                <div class="user-avatar" id="userAvatar">JD</div>
+                <span id="userName">Loading...</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1 style="margin-bottom: 30px;">📊 Your Progress</h1>
+
+        <div class="grid">
+            <div class="stat-card">
+                <div class="stat-label">Current Streak</div>
+                <div class="stat-value" id="currentStreak">0 🔥</div>
+                <div class="stat-change">Days in a row</div>
+            </div>
+            <div class="stat-card secondary">
+                <div class="stat-label">This Month</div>
+                <div class="stat-value" id="monthWorkouts">0</div>
+                <div class="stat-change" id="monthPercent">0% completion</div>
+            </div>
+            <div class="stat-card success">
+                <div class="stat-label">Success Rate</div>
+                <div class="stat-value" id="successRate">0%</div>
+                <div class="stat-change">All time</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <div class="card-title" id="calendarTitle">January 2026</div>
+                    <div class="card-subtitle">Green = Complete, Red = Missed, Yellow = Today</div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="changeMonth(-1)" class="btn-icon btn-secondary">←</button>
+                    <button onclick="changeMonth(1)" class="btn-icon btn-secondary">→</button>
+                </div>
+            </div>
+            <div class="calendar-header">
+                <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            </div>
+            <div class="calendar" id="calendar"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">🏆 Milestones</div>
+            </div>
+            <div id="milestones"></div>
+        </div>
+    </div>
+
+
+    async function showDayDetails(dateStr, date) {
+        const dayLogs = allLogs.slice(1).filter(row => 
+            row[2] === userData.userId && row[1] === dateStr
+        );
+        
+        const dayName = date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+        });
+        
+        if (dayLogs.length === 0) {
+            alert(`${dayName}\n\n❌ No workouts on this day`);
+            return;
+        }
+        
+        const workouts = await SheetsAPI.getWorkouts();
+        const details = dayLogs.map(log => {
+            const w = workouts.find(wk => wk[0] === log[3]);
+            const time = log[5] ? new Date(log[5]).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : 'N/A';
+            return `✅ ${w ? w[2] : 'Unknown'} at ${time}`;
+        }).join('\n');
+        
+        alert(`${dayName}\n\n${details}\n\n📊 Total: ${dayLogs.length} workout${dayLogs.length > 1 ? 's' : ''}`);
+    }
+
+    <script src="config-secrets.js"></script>
+
+    async function showDayDetails(dateStr, date) {
+        const dayLogs = allLogs.slice(1).filter(row => 
+            row[2] === userData.userId && row[1] === dateStr
+        );
+        
+        const dayName = date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+        });
+        
+        if (dayLogs.length === 0) {
+            alert(`${dayName}\n\n❌ No workouts on this day`);
+            return;
+        }
+        
+        const workouts = await SheetsAPI.getWorkouts();
+        const details = dayLogs.map(log => {
+            const w = workouts.find(wk => wk[0] === log[3]);
+            const time = log[5] ? new Date(log[5]).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : 'N/A';
+            return `✅ ${w ? w[2] : 'Unknown'} at ${time}`;
+        }).join('\n');
+        
+        alert(`${dayName}\n\n${details}\n\n📊 Total: ${dayLogs.length} workout${dayLogs.length > 1 ? 's' : ''}`);
+    }
+
+    <script src="config.js"></script>
+
+    async function showDayDetails(dateStr, date) {
+        const dayLogs = allLogs.slice(1).filter(row => 
+            row[2] === userData.userId && row[1] === dateStr
+        );
+        
+        const dayName = date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+        });
+        
+        if (dayLogs.length === 0) {
+            alert(`${dayName}\n\n❌ No workouts on this day`);
+            return;
+        }
+        
+        const workouts = await SheetsAPI.getWorkouts();
+        const details = dayLogs.map(log => {
+            const w = workouts.find(wk => wk[0] === log[3]);
+            const time = log[5] ? new Date(log[5]).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : 'N/A';
+            return `✅ ${w ? w[2] : 'Unknown'} at ${time}`;
+        }).join('\n');
+        
+        alert(`${dayName}\n\n${details}\n\n📊 Total: ${dayLogs.length} workout${dayLogs.length > 1 ? 's' : ''}`);
+    }
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+
+    async function showDayDetails(dateStr, date) {
+        const dayLogs = allLogs.slice(1).filter(row => 
+            row[2] === userData.userId && row[1] === dateStr
+        );
+        
+        const dayName = date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+        });
+        
+        if (dayLogs.length === 0) {
+            alert(`${dayName}\n\n❌ No workouts on this day`);
+            return;
+        }
+        
+        const workouts = await SheetsAPI.getWorkouts();
+        const details = dayLogs.map(log => {
+            const w = workouts.find(wk => wk[0] === log[3]);
+            const time = log[5] ? new Date(log[5]).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : 'N/A';
+            return `✅ ${w ? w[2] : 'Unknown'} at ${time}`;
+        }).join('\n');
+        
+        alert(`${dayName}\n\n${details}\n\n📊 Total: ${dayLogs.length} workout${dayLogs.length > 1 ? 's' : ''}`);
+    }
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    async function showDayDetails(dateStr, date) {
+        const dayLogs = allLogs.slice(1).filter(row => 
+            row[2] === userData.userId && row[1] === dateStr
+        );
+        
+        const dayName = date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+        });
+        
+        if (dayLogs.length === 0) {
+            alert(`${dayName}\n\n❌ No workouts on this day`);
+            return;
+        }
+        
+        const workouts = await SheetsAPI.getWorkouts();
+        const details = dayLogs.map(log => {
+            const w = workouts.find(wk => wk[0] === log[3]);
+            const time = log[5] ? new Date(log[5]).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : 'N/A';
+            return `✅ ${w ? w[2] : 'Unknown'} at ${time}`;
+        }).join('\n');
+        
+        alert(`${dayName}\n\n${details}\n\n📊 Total: ${dayLogs.length} workout${dayLogs.length > 1 ? 's' : ''}`);
+    }
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+    async function showDayDetails(dateStr, date) {
+        const dayLogs = allLogs.slice(1).filter(row => 
+            row[2] === userData.userId && row[1] === dateStr
+        );
+        
+        const dayName = date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+        });
+        
+        if (dayLogs.length === 0) {
+            alert(`${dayName}\n\n❌ No workouts on this day`);
+            return;
+        }
+        
+        const workouts = await SheetsAPI.getWorkouts();
+        const details = dayLogs.map(log => {
+            const w = workouts.find(wk => wk[0] === log[3]);
+            const time = log[5] ? new Date(log[5]).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : 'N/A';
+            return `✅ ${w ? w[2] : 'Unknown'} at ${time}`;
+        }).join('\n');
+        
+        alert(`${dayName}\n\n${details}\n\n📊 Total: ${dayLogs.length} workout${dayLogs.length > 1 ? 's' : ''}`);
+    }
+
+    <script src="https://apis.google.com/js/api.js"></script>
+
+    async function showDayDetails(dateStr, date) {
+        const dayLogs = allLogs.slice(1).filter(row => 
+            row[2] === userData.userId && row[1] === dateStr
+        );
+        
+        const dayName = date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+        });
+        
+        if (dayLogs.length === 0) {
+            alert(`${dayName}\n\n❌ No workouts on this day`);
+            return;
+        }
+        
+        const workouts = await SheetsAPI.getWorkouts();
+        const details = dayLogs.map(log => {
+            const w = workouts.find(wk => wk[0] === log[3]);
+            const time = log[5] ? new Date(log[5]).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : 'N/A';
+            return `✅ ${w ? w[2] : 'Unknown'} at ${time}`;
+        }).join('\n');
+        
+        alert(`${dayName}\n\n${details}\n\n📊 Total: ${dayLogs.length} workout${dayLogs.length > 1 ? 's' : ''}`);
+    }
+
+    <script src="sheets-api.js"></script>
+
+    <script>
+        firebase.initializeApp(CONFIG.firebase);
+        const auth = firebase.auth();
+        let currentUser = null;
+        let userData = null;
+        let allLogs = [];
+        let currentMonth = new Date();
+
+        auth.onAuthStateChanged((user) => {
+            if (!user) window.location.href = 'index.html';
+            else { currentUser = user; loadProgress(); }
+        });
+
+        async function loadProgress() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            try {
+                await SheetsAPI.init();
+                const userRow = await SheetsAPI.getUserByEmail(currentUser.email);
+                if (!userRow) { window.location.href = 'setup.html'; return; }
+                userData = { userId: userRow[0], name: userRow[1] };
+                document.getElementById('userName').textContent = userData.name;
+                document.getElementById('userAvatar').textContent = getInitials(userData.name);
+                allLogs = await SheetsAPI.getDailyLogs();
+                const stats = await SheetsAPI.getUserStats(userData.userId);
+                document.getElementById('currentStreak').textContent = stats.currentStreak + ' 🔥';
+                renderCalendar();
+                calculateMonthStats();
+                loadMilestones();
+                document.getElementById('loadingOverlay').style.display = 'none';
+            } catch (error) {
+                console.error('Progress load error:', error);
+                alert('Failed to load progress: ' + error.message);
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        function renderCalendar() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            document.getElementById('calendarTitle').textContent = currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const calendar = document.getElementById('calendar');
+            calendar.innerHTML = '';
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            for (let i = 0; i < firstDay; i++) {
+                const div = document.createElement('div');
+                div.className = 'calendar-day empty';
+                calendar.appendChild(div);
+            }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dateStr = date.toISOString().split('T')[0];
+                const div = document.createElement('div');
+                div.className = 'calendar-day';
+                div.textContent = day;
+        div.onclick = () => showDayDetails(dateStr, date);
+        div.style.cursor = "pointer";
+                const hasLog = allLogs.slice(1).some(row => row[2] === userData.userId && row[1] === dateStr);
+                if (date > today) {
+                    div.classList.add('future');
+                } else if (date.getTime() === today.getTime()) {
+                    div.classList.add(hasLog ? 'complete' : 'today');
+                } else {
+                    div.classList.add(hasLog ? 'complete' : 'incomplete');
+                }
+                calendar.appendChild(div);
+            }
+        }
+
+        function changeMonth(delta) {
+            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + delta, 1);
+            renderCalendar();
+            calculateMonthStats();
+        }
+
+        function calculateMonthStats() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            const monthStart = new Date(year, month, 1).toISOString().split('T')[0];
+            const monthEnd = new Date(year, month + 1, 0).toISOString().split('T')[0];
+            const monthLogs = allLogs.slice(1).filter(row => row[2] === userData.userId && row[1] >= monthStart && row[1] <= monthEnd);
+            const uniqueDays = [...new Set(monthLogs.map(row => row[1]))].length;
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            const daysPassed = currentMonth.getMonth() === today.getMonth() && currentMonth.getFullYear() === today.getFullYear() ? today.getDate() : daysInMonth;
+            const percentage = daysPassed > 0 ? Math.round((uniqueDays / daysPassed) * 100) : 0;
+            document.getElementById('monthWorkouts').textContent = uniqueDays;
+            document.getElementById('monthPercent').textContent = percentage + '% completion';
+            const totalLogs = allLogs.slice(1).filter(row => row[2] === userData.userId);
+            const totalDays = [...new Set(totalLogs.map(row => row[1]))].length;
+            const daysSinceStart = totalDays > 0 ? Math.ceil((new Date() - new Date(totalLogs[0][1])) / (1000 * 60 * 60 * 24)) : 1;
+            const successRate = Math.round((totalDays / daysSinceStart) * 100);
+            document.getElementById('successRate').textContent = successRate + '%';
+        }
+
+        async function loadMilestones() {
+            const milestones = await SheetsAPI.getUserMilestones(userData.userId);
+            const container = document.getElementById('milestones');
+            const icons = { '7_day_streak': '🔥', '30_day_streak': '💪', '100_workouts': '🎯', '90_percent_success': '⭐', '6_month_consistency': '👑' };
+            const names = { '7_day_streak': '7 Day Streak', '30_day_streak': '30 Day Streak', '100_workouts': '100 Workouts', '90_percent_success': '90% Success Rate', '6_month_consistency': '6 Month Consistency' };
+            container.innerHTML = milestones.map(m => {
+                const type = m[2];
+                const current = parseInt(m[4]);
+                const target = parseInt(m[3]);
+                const status = m[5];
+                const percent = Math.min(100, Math.round((current / target) * 100));
+                return `<div class="milestone-card"><div class="milestone-icon ${status === 'COMPLETED' ? 'unlocked' : 'locked'}">${icons[type]}</div><div style="flex: 1;"><strong>${names[type]}</strong><div class="progress-bar" style="margin-top: 8px;"><div class="progress-fill" style="width: ${percent}%;"></div></div><small style="color: var(--text-secondary);">${current} / ${target}</small></div></div>`;
+            }).join('');
+        }
+
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        }
+
+    async function showDayDetails(dateStr, date) {
+        const dayLogs = allLogs.slice(1).filter(row => 
+            row[2] === userData.userId && row[1] === dateStr
+        );
+        
+        const dayName = date.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+        });
+        
+        if (dayLogs.length === 0) {
+            alert(`${dayName}\n\n❌ No workouts on this day`);
+            return;
+        }
+        
+        const workouts = await SheetsAPI.getWorkouts();
+        const details = dayLogs.map(log => {
+            const w = workouts.find(wk => wk[0] === log[3]);
+            const time = log[5] ? new Date(log[5]).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : 'N/A';
+            return `✅ ${w ? w[2] : 'Unknown'} at ${time}`;
+        }).join('\n');
+        
+        alert(`${dayName}\n\n${details}\n\n📊 Total: ${dayLogs.length} workout${dayLogs.length > 1 ? 's' : ''}`);
+    }
+
+    </script>
+</body>
+</html>

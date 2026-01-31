@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - FitSync</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dashboard">
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p id="loadingText">Loading...</p>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="container">
+            <div class="logo">💪 FitSync</div>
+            <div class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="progress.html">Progress</a>
+                <a href="partner.html">Partner</a>
+                <a href="settings.html" class="active">Settings</a>
+            </div>
+            <div class="user-menu">
+                <div class="user-avatar" id="userAvatar">JD</div>
+                <span id="userName">Loading...</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 800px;">
+        <h1 style="margin-bottom: 30px;">⚙️ Settings</h1>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Profile Information</h2>
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="nameInput" placeholder="Your name">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="emailInput" disabled style="opacity: 0.6;">
+                <small>Email cannot be changed</small>
+            </div>
+            <div class="form-group">
+                <label>Telegram Username</label>
+                <input type="text" id="telegramInput" placeholder="@yourusername">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Work Schedule</h2>
+            <div class="form-group">
+                <label>Work Start Time</label>
+                <input type="time" id="workTimeInput">
+            </div>
+            <div class="form-group">
+                <label>Commute (minutes)</label>
+                <input type="number" id="commuteInput" min="0">
+            </div>
+            <div class="form-group">
+                <label>Grooming Time (minutes)</label>
+                <input type="number" id="groomingInput" min="0">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Partner</h2>
+            <div class="form-group">
+                <label>Partner Email</label>
+                <input type="email" id="partnerEmailInput" placeholder="partner@example.com">
+                <small>Partner must have a FitSync account</small>
+            </div>
+            <div id="currentPartner" style="margin-top: 15px; padding: 15px; background: var(--bg-dark); border-radius: 8px; display: none;">
+                <strong>Current Partner:</strong> <span id="partnerNameDisplay"></span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Notifications</h2>
+            <div class="form-group">
+                <label>Alert Time (if workout incomplete)</label>
+                <input type="time" id="alertTimeInput">
+                <small>You and your partner will be notified at this time</small>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-top: 30px;">
+            <button onclick="saveSettings()" class="btn btn-primary" style="flex: 1;">💾 Save Changes</button>
+            <button onclick="handleSignOut()" class="btn btn-danger" style="flex: 1;">🚪 Sign Out</button>
+        </div>
+    </div>
+
+    <script src="config-secrets.js"></script>
+    <script src="config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="sheets-api.js"></script>
+
+    <script>
+        firebase.initializeApp(CONFIG.firebase);
+        const auth = firebase.auth();
+        let currentUser = null;
+        let userData = null;
+
+        auth.onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+            } else {
+                currentUser = user;
+                loadSettings();
+            }
+        });
+
+        async function loadSettings() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            try {
+                await SheetsAPI.init();
+                const userRow = await SheetsAPI.getUserByEmail(currentUser.email);
+                if (!userRow) {
+                    window.location.href = 'setup.html';
+                    return;
+                }
+
+                userData = {
+                    userId: userRow[0],
+                    name: userRow[1],
+                    email: userRow[2],
+                    telegram: userRow[3],
+                    workTime: userRow[4],
+                    commute: userRow[5],
+                    grooming: userRow[6],
+                    partnerId: userRow[7],
+                    alertTime: userRow[8]
+                };
+
+                document.getElementById('userName').textContent = userData.name;
+                document.getElementById('userAvatar').textContent = getInitials(userData.name);
+                document.getElementById('nameInput').value = userData.name;
+                document.getElementById('emailInput').value = userData.email;
+                document.getElementById('telegramInput').value = userData.telegram || '';
+                document.getElementById('workTimeInput').value = userData.workTime;
+                document.getElementById('commuteInput').value = userData.commute;
+                document.getElementById('groomingInput').value = userData.grooming;
+                document.getElementById('alertTimeInput').value = userData.alertTime;
+
+                if (userData.partnerId) {
+                    const users = await SheetsAPI.getUsers();
+                    const partner = users.find(row => row[0] === userData.partnerId);
+                    if (partner) {
+                        document.getElementById('currentPartner').style.display = 'block';
+                        document.getElementById('partnerNameDisplay').textContent = partner[1];
+                        document.getElementById('partnerEmailInput').value = partner[2];
+                    }
+                }
+
+                document.getElementById('loadingOverlay').style.display = 'none';
+            } catch (error) {
+                console.error('Load error:', error);
+                alert('Failed to load settings: ' + error.message);
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        async function saveSettings() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            document.getElementById('loadingText').textContent = 'Saving...';
+            try {
+                const updates = {
+                    name: document.getElementById('nameInput').value,
+                    telegram: document.getElementById('telegramInput').value,
+                    workTime: document.getElementById('workTimeInput').value,
+                    commute: document.getElementById('commuteInput').value,
+                    grooming: document.getElementById('groomingInput').value,
+                    alertTime: document.getElementById('alertTimeInput').value
+                };
+
+                await SheetsAPI.updateUser(currentUser.email, updates);
+
+                const newPartnerEmail = document.getElementById('partnerEmailInput').value.trim();
+                if (newPartnerEmail && newPartnerEmail !== currentUser.email) {
+                    await SheetsAPI.updateUserPartner(currentUser.email, newPartnerEmail);
+                }
+
+                await currentUser.updateProfile({ displayName: updates.name });
+
+                alert('✅ Settings saved successfully!');
+                document.getElementById('loadingOverlay').style.display = 'none';
+            } catch (error) {
+                console.error('Save error:', error);
+                alert('Failed to save settings: ' + error.message);
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        }
+
+        async function handleSignOut() {
+            if (confirm('Are you sure you want to sign out?')) {
+                try {
+                    if (gapi && gapi.client && gapi.client.getToken()) {
+                        gapi.client.setToken(null);
+                    }
+                    await auth.signOut();
+                    window.location.href = 'index.html';
+                } catch (error) {
+                    console.error('Sign out error:', error);
+                    await auth.signOut();
+                    window.location.href = 'index.html';
+                }
+            }
+        }
+
+        function getInitials(name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        }
+    </script>
+</body>
+</html>
