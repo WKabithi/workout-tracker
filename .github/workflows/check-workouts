@@ -1,0 +1,159 @@
+// Daily Accountability Check Script
+// Runs at 8pm Nairobi time to check if users completed their workouts
+
+const axios = require('axios');
+
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const GOOGLE_SHEETS_API_KEY = process.env.GOOGLE_SHEETS_API_KEY;
+const GOOGLE_SHEET_ID = process.env.GOOGLE_SHEET_ID;
+
+// Get today's date in YYYY-MM-DD format
+function getTodayDate() {
+    const today = new Date();
+    // Convert to Nairobi timezone (UTC+3)
+    const nairobiTime = new Date(today.toLocaleString('en-US', { timeZone: 'Africa/Nairobi' }));
+    return nairobiTime.toISOString().split('T')[0];
+}
+
+// Fetch data from Google Sheets
+async function fetchSheetData(range) {
+    try {
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/${range}?key=${GOOGLE_SHEETS_API_KEY}`;
+        const response = await axios.get(url);
+        return response.data.values || [];
+    } catch (error) {
+        console.error(`Error fetching ${range}:`, error.message);
+        return [];
+    }
+}
+
+// Send Telegram message
+async function sendTelegramMessage(chatId, message) {
+    try {
+        const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        await axios.post(url, {
+            chat_id: chatId,
+            text: message,
+            parse_mode: 'Markdown'
+        });
+        console.log(`✅ Sent alert to ${chatId}`);
+        return true;
+    } catch (error) {
+        console.error(`❌ Failed to send to ${chatId}:`, error.message);
+        return false;
+    }
+}
+
+// Get Telegram chat ID from username
+async function getChatIdFromUsername(username) {
+    // Note: This is a limitation - Telegram doesn't allow getting chat_id from username directly
+    // Users need to start a conversation with the bot first
+    // For now, we'll return the username and let the bot handle it
+    return username;
+}
+
+// Main accountability check function
+async function checkAccountability() {
+    console.log('🔍 Starting daily accountability check...');
+    console.log(`📅 Date: ${getTodayDate()}`);
+    
+    try {
+        // Fetch all data
+        console.log('📊 Fetching data from Google Sheets...');
+        const users = await fetchSheetData('Users!A:K');
+        const workouts = await fetchSheetData('Workouts!A:F');
+        const logs = await fetchSheetData('DailyLogs!A:G');
+        
+        if (users.length <= 1) {
+            console.log('ℹ️ No users found');
+            return;
+        }
+
+        const today = getTodayDate();
+        const todayLogs = logs.slice(1).filter(log => log[1] === today); // Filter today's logs
+        
+        console.log(`👥 Found ${users.length - 1} users`);
+        console.log(`✅ Today's completed workouts: ${todayLogs.length}`);
+
+        // Check each user
+        for (let i = 1; i < users.length; i++) {
+            const user = users[i];
+            const userId = user[0];
+            const userName = user[1];
+            const userEmail = user[2];
+            const telegramUsername = user[3];
+            const partnerId = user[7];
+            const alertTime = user[8] || '20:00';
+
+            console.log(`\n👤 Checking user: ${userName} (${userEmail})`);
+
+            // Get user's workouts
+            const userWorkouts = workouts.slice(1).filter(w => w[1] === userId);
+            const totalWorkouts = userWorkouts.length;
+
+            // Get user's today logs
+            const userTodayLogs = todayLogs.filter(log => log[2] === userId);
+            const completedWorkouts = userTodayLogs.length;
+
+            console.log(`   📝 Total workouts: ${totalWorkouts}`);
+            console.log(`   ✅ Completed today: ${completedWorkouts}`);
+
+            // Check if incomplete
+            if (completedWorkouts < totalWorkouts) {
+                console.log(`   ⚠️ Incomplete workout detected!`);
+
+                // Find partner
+                if (partnerId) {
+                    const partner = users.find(u => u[0] === partnerId);
+                    if (partner) {
+                        const partnerName = partner[1];
+                        const partnerTelegram = partner[3];
+
+                        console.log(`   👥 Partner: ${partnerName}`);
+
+                        // Send alert to partner
+                        if (partnerTelegram) {
+                            const message = `⚠️ *Accountability Alert*\n\n` +
+                                `${userName} hasn't completed their workout today!\n\n` +
+                                `*Progress:* ${completedWorkouts}/${totalWorkouts} exercises\n\n` +
+                                `Time to check in and motivate your partner! 💪`;
+
+                            // Note: This requires users to have started a conversation with the bot
+                            // and stored their chat_id in the database
+                            // For now, send to the username (requires manual /start)
+                            await sendTelegramMessage(partnerTelegram, message);
+                        } else {
+                            console.log(`   ℹ️ Partner has no Telegram username`);
+                        }
+                    }
+                } else {
+                    console.log(`   ℹ️ No partner set for this user`);
+                }
+
+                // Also notify the user themselves
+                if (telegramUsername) {
+                    const selfMessage = `⏰ *Workout Reminder*\n\n` +
+                        `Hey ${userName}! You haven't completed your workout today.\n\n` +
+                        `*Progress:* ${completedWorkouts}/${totalWorkouts} exercises\n\n` +
+                        `Your partner will be notified. Time to get moving! 💪`;
+
+                    await sendTelegramMessage(telegramUsername, selfMessage);
+                }
+            } else {
+                console.log(`   ✅ All workouts completed!`);
+            }
+        }
+
+        console.log('\n✅ Accountability check complete!');
+
+    } catch (error) {
+        console.error('❌ Error during accountability check:', error);
+        throw error;
+    }
+}
+
+// Run the check
+checkAccountability().catch(error => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+});
