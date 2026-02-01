@@ -24,18 +24,11 @@
                 <a href="settings.html">Settings</a>
             </div>
             <div class="user-menu">
-                <div class="user-avatar" id="userAvatar" onclick="toggleDropdown()" style="cursor:pointer;">JD</div>
+                <div class="user-avatar" id="userAvatar">JD</div>
                 <span id="userName">Loading...</span>
             </div>
         </div>
     </nav>
-
-<div id="userDropdown" style="display:none; position:absolute; top:60px; right:20px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; padding:8px; box-shadow:0 8px 20px rgba(0,0,0,0.6); z-index:1000;">
-    <a href="settings.html" style="display:block; padding:12px 16px; color:var(--text-primary); text-decoration:none; border-radius:8px;">⚙️ Settings</a>
-    <a href="progress.html" style="display:block; padding:12px 16px; color:var(--text-primary); text-decoration:none; border-radius:8px;">📊 Progress</a>
-    <a href="partner.html" style="display:block; padding:12px 16px; color:var(--text-primary); text-decoration:none; border-radius:8px;">👥 Partner</a>
-    <a href="#" onclick="handleSignOut(); return false;" style="display:block; padding:12px 16px; color:#EF4444; text-decoration:none; border-radius:8px;">🚪 Sign Out</a>
-</div>
 
     <div class="container">
         <div class="grid">
@@ -212,34 +205,24 @@
         }
 
         async function checkSkippedBreathwork() {
-            const skipped = const shouldPrompt = await shouldShowSkipPrompt(userData.userId);
-        if (shouldPrompt) {
-            showSkipDayPrompt(
-                async () => {
-                    await SheetsAPI.updateUser(currentUser.email, {
-                        breathworkStartDate: new Date().toISOString().split("T")[0]
-                    });
-                    userData.breathworkStartDate = new Date().toISOString().split("T")[0];
-                    loadBreathworkVideo();
-                },
-                () => { loadBreathworkVideo(); }
-            );
-        } else {
-            loadBreathworkVideo();
-        }
-            if (skipped) {
+            const shouldPrompt = await shouldShowSkipPrompt(userData.userId);
+            if (shouldPrompt) {
                 showSkipDayPrompt(
                     async () => {
                         await SheetsAPI.updateUser(currentUser.email, {
                             breathworkStartDate: new Date().toISOString().split('T')[0]
                         });
-                        userData.breathworkStartDate = new Date().toISOString().split('T')[0];
+                        userData.breathworkStartDate = new Date().toISOString().split('T')[0]
+
+;
                         loadBreathworkVideo();
                     },
                     () => {
                         loadBreathworkVideo();
                     }
                 );
+            } else {
+                loadBreathworkVideo();
             }
         }
 
@@ -389,155 +372,5 @@
             return `${displayHours}:${String(minutes).padStart(2, '0')} ${ampm}`;
         }
     </script>
-
-<script>
-function toggleDropdown() {
-    const dropdown = document.getElementById('userDropdown');
-    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-}
-
-document.addEventListener('click', function(event) {
-    const dropdown = document.getElementById('userDropdown');
-    const avatar = document.getElementById('userAvatar');
-    if (dropdown && avatar && !dropdown.contains(event.target) && !avatar.contains(event.target)) {
-        dropdown.style.display = 'none';
-    }
-});
-
-async function handleSignOut() {
-    if (confirm('Sign out of FitSync?')) {
-        try {
-            sessionStorage.clear();
-            await firebase.auth().signOut();
-            window.location.href = 'index.html';
-        } catch (error) {
-            console.error('Sign out error:', error);
-            window.location.href = 'index.html';
-        }
-    }
-}
-
-function showAddModal() {
-    document.getElementById('newWorkoutName').value = '';
-    document.getElementById('newWorkoutDetails').value = '';
-    document.getElementById('newWorkoutMinutes').value = '';
-    document.getElementById('addWorkoutModal').style.display = 'flex';
-}
-
-function closeAddModal() {
-    document.getElementById('addWorkoutModal').style.display = 'none';
-}
-
-async function saveNewWorkout() {
-    const name = document.getElementById('newWorkoutName').value.trim();
-    const details = document.getElementById('newWorkoutDetails').value.trim();
-    const minutes = parseInt(document.getElementById('newWorkoutMinutes').value);
-    
-    if (!name || !details || !minutes) {
-        alert('Please fill in all fields');
-        return;
-    }
-    
-    showLoading('Adding workout...');
-    try {
-        await SheetsAPI.createMultipleWorkouts(userData.userId, [{name, details, minutes}]);
-        await loadWorkouts();
-        closeAddModal();
-        hideLoading();
-        alert('✅ Workout added!');
-    } catch (error) {
-        hideLoading();
-        alert('❌ Failed: ' + error.message);
-    }
-}
-
-function showEditModal() {
-    const list = document.getElementById('editWorkoutsList');
-    list.innerHTML = userWorkouts.map((w, i) => `
-        <div style="display:grid; grid-template-columns:2fr 2fr 1fr 40px; gap:10px; margin-bottom:12px;">
-            <input type="text" id="edit_name_${i}" value="${w[2]}" style="padding:10px; border:2px solid var(--border); border-radius:8px; background:var(--bg-dark); color:var(--text-primary);">
-            <input type="text" id="edit_details_${i}" value="${w[3]}" style="padding:10px; border:2px solid var(--border); border-radius:8px; background:var(--bg-dark); color:var(--text-primary);">
-            <input type="number" id="edit_minutes_${i}" value="${w[4]}" min="1" style="padding:10px; border:2px solid var(--border); border-radius:8px; background:var(--bg-dark); color:var(--text-primary);">
-            <button onclick="deleteWorkout('${w[0]}')" style="padding:10px; border:none; border-radius:8px; background:var(--danger); color:white; cursor:pointer;">🗑️</button>
-        </div>
-    `).join('');
-    document.getElementById('editWorkoutsModal').style.display = 'flex';
-}
-
-function closeEditModal() {
-    document.getElementById('editWorkoutsModal').style.display = 'none';
-}
-
-async function saveWorkoutEdits() {
-    showLoading('Saving...');
-    try {
-        for (let i = 0; i < userWorkouts.length; i++) {
-            await SheetsAPI.updateWorkout(userWorkouts[i][0], {
-                name: document.getElementById(`edit_name_${i}`).value,
-                details: document.getElementById(`edit_details_${i}`).value,
-                minutes: parseInt(document.getElementById(`edit_minutes_${i}`).value)
-            });
-        }
-        await loadWorkouts();
-        closeEditModal();
-        hideLoading();
-        alert('✅ Saved!');
-    } catch (error) {
-        hideLoading();
-        alert('❌ Failed: ' + error.message);
-    }
-}
-
-async function deleteWorkout(workoutId) {
-    if (confirm('Delete this workout?')) {
-        showLoading('Deleting...');
-        try {
-            await SheetsAPI.deleteWorkout(workoutId);
-            await loadWorkouts();
-            showEditModal();
-            hideLoading();
-        } catch (error) {
-            hideLoading();
-            alert('❌ Failed: ' + error.message);
-        }
-    }
-}
-</script>
 </body>
-
-<!-- Add Workout Modal -->
-<div id="addWorkoutModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
-    <div style="background:var(--bg-card); padding:30px; border-radius:20px; max-width:500px; width:90%; border:1px solid var(--border);">
-        <h2 style="margin-bottom:20px;">Add New Exercise</h2>
-        <div style="margin-bottom:15px;">
-            <label style="display:block; margin-bottom:5px;">Exercise Name</label>
-            <input type="text" id="newWorkoutName" placeholder="e.g., Lunges" style="width:100%; padding:12px; border:2px solid var(--border); border-radius:8px; background:var(--bg-dark); color:var(--text-primary);">
-        </div>
-        <div style="margin-bottom:15px;">
-            <label style="display:block; margin-bottom:5px;">Details</label>
-            <input type="text" id="newWorkoutDetails" placeholder="e.g., 3 sets of 15" style="width:100%; padding:12px; border:2px solid var(--border); border-radius:8px; background:var(--bg-dark); color:var(--text-primary);">
-        </div>
-        <div style="margin-bottom:20px;">
-            <label style="display:block; margin-bottom:5px;">Duration (minutes)</label>
-            <input type="number" id="newWorkoutMinutes" placeholder="10" min="1" max="120" style="width:100%; padding:12px; border:2px solid var(--border); border-radius:8px; background:var(--bg-dark); color:var(--text-primary);">
-        </div>
-        <div style="display:flex; gap:10px;">
-            <button onclick="saveNewWorkout()" class="btn btn-primary" style="flex:1;">💾 Add</button>
-            <button onclick="closeAddModal()" class="btn btn-secondary" style="flex:1;">Cancel</button>
-        </div>
-    </div>
-</div>
-
-<!-- Edit Workouts Modal -->
-<div id="editWorkoutsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; align-items:center; justify-content:center;">
-    <div style="background:var(--bg-card); padding:30px; border-radius:20px; max-width:700px; width:90%; max-height:80vh; overflow-y:auto; border:1px solid var(--border);">
-        <h2 style="margin-bottom:20px;">Edit Workouts</h2>
-        <div id="editWorkoutsList"></div>
-        <div style="display:flex; gap:10px; margin-top:20px;">
-            <button onclick="saveWorkoutEdits()" class="btn btn-primary" style="flex:1;">💾 Save</button>
-            <button onclick="closeEditModal()" class="btn btn-secondary" style="flex:1;">Cancel</button>
-        </div>
-    </div>
-</div>
-
 </html>
