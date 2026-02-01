@@ -127,7 +127,7 @@
         </div>
     </div>
 
-    
+    <script src="config-secrets.js"></script>
     <script src="config.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -212,7 +212,7 @@
         }
 
         async function checkSkippedBreathwork() {
-            const shouldPrompt = await shouldShowSkipPrompt(userData.userId);
+            const skipped = const shouldPrompt = await shouldShowSkipPrompt(userData.userId);
         if (shouldPrompt) {
             showSkipDayPrompt(
                 async () => {
@@ -227,6 +227,20 @@
         } else {
             loadBreathworkVideo();
         }
+            if (skipped) {
+                showSkipDayPrompt(
+                    async () => {
+                        await SheetsAPI.updateUser(currentUser.email, {
+                            breathworkStartDate: new Date().toISOString().split('T')[0]
+                        });
+                        userData.breathworkStartDate = new Date().toISOString().split('T')[0];
+                        loadBreathworkVideo();
+                    },
+                    () => {
+                        loadBreathworkVideo();
+                    }
+                );
+            }
         }
 
         function loadBreathworkVideo() {
